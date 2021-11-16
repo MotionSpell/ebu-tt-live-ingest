@@ -5,6 +5,7 @@
 
 // modules
 #include "lib_media/out/file.hpp"
+#include "plugins/TtmlDecoder/ttml_decoder.hpp"
 #include "plugins/TtmlEncoder/ttml_encoder.hpp"
 
 using namespace Modules;
@@ -14,36 +15,36 @@ extern const char *g_appName;
 
 namespace {
 struct Logger : LogSink {
-	void send(Level level, const char *msg) override {
-		if (level == Level::Debug)
-			return;
+		void send(Level level, const char *msg) override {
+			if (level == Level::Debug)
+				return;
 
-		auto const now = (double)g_SystemClock->now();
-		fprintf(stderr, "[%s][%.1f][%s#%p][%s]%s\n", getTime().c_str(), now,
-				g_appName, this, getLogLevelName(level), msg);
-		fflush(stderr);
-	}
-
-private:
-	const char *getLogLevelName(Level level) {
-		switch (level) {
-		case Level::Debug:   return "debug";
-		case Level::Info:    return "info";
-		case Level::Warning: return "warning";
-		case Level::Error:   return "error";
-		default:             return "internal error";
+			auto const now = (double)g_SystemClock->now();
+			fprintf(stderr, "[%s][%.1f][%s#%p][%s]%s\n", getTime().c_str(), now,
+			    g_appName, this, getLogLevelName(level), msg);
+			fflush(stderr);
 		}
-	}
 
-	std::string getTime() {
-		char szOut[255];
-		const std::time_t t = std::time(nullptr);
-		const std::tm tm = *std::gmtime(&t);
-		auto const size = strftime(szOut, sizeof szOut, "%Y/%m/%d %H:%M:%S", &tm);
-		auto timeString = std::string(szOut, size);
-		snprintf(szOut, sizeof szOut, "%s", timeString.c_str());
-		return szOut;
-	}
+	private:
+		const char *getLogLevelName(Level level) {
+			switch (level) {
+			case Level::Debug:   return "debug";
+			case Level::Info:    return "info";
+			case Level::Warning: return "warning";
+			case Level::Error:   return "error";
+			default:             return "internal error";
+			}
+		}
+
+		std::string getTime() {
+			char szOut[255];
+			const std::time_t t = std::time(nullptr);
+			const std::tm tm = *std::gmtime(&t);
+			auto const size = strftime(szOut, sizeof szOut, "%Y/%m/%d %H:%M:%S", &tm);
+			auto timeString = std::string(szOut, size);
+			snprintf(szOut, sizeof szOut, "%s", timeString.c_str());
+			return szOut;
+		}
 };
 
 struct UtcStartTime : IUtcStartTimeQuery {
@@ -53,6 +54,46 @@ struct UtcStartTime : IUtcStartTimeQuery {
 	uint64_t startTime;
 };
 UtcStartTime utcStartTime;
+
+struct EverGrowingPlaylistSink : ModuleS {
+	EverGrowingPlaylistSink(KHost*, const std::string &playlistFn, int segDurInMs)
+	: playlistFn(playlistFn), segDurInMs(segDurInMs) {}
+
+	void processOne(Data data) override {
+		char buf[64] = {};
+
+		// write data
+		{
+			auto f = fopen(buf, "wt");
+			snprintf(buf, sizeof(buf), "default_msg_%d.xml", seqCounter);
+			fwrite(data->data().ptr, 1, data->data().len, f);
+			fclose(f);
+		}
+
+		// add to playlist
+		{
+			int64_t t = seqCounter * segDurInMs;
+			auto const msec = int(t % 1000);
+			t /= 1000;
+			auto const sec = int(t % 60);
+			t /= 60;
+			auto const min = int(t % 60);
+			t /= 60;
+			auto const hour = int(t);
+
+			snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%03d,default_msg_%d.xml\n", hour, min, sec, msec, seqCounter);
+
+			auto f = fopen(playlistFn.c_str(), "at");
+			fwrite(buf, 1, data->data().len, f);
+			fclose(f);
+		}
+	}
+
+private:
+	std::string playlistFn;
+	int segDurInMs = 0;
+	int seqCounter = 0;
+};
 }
 
 std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
@@ -62,31 +103,30 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 
 	// input
 	SocketInputConfig mcast;
-	mcast.isTcp = false;
-	mcast.isMulticast = true;
+	mcast.isTcp = true;
+	mcast.isMulticast = false;
 	source = pipeline->add("SocketInput", &mcast);
 
-	//Romain: do we need to ensure framing?
-	//Romain: we need to wait for a 30s timeout? does that forces us to stay awake
-
 	// extract text and add realtime timestamp
-	//Romain: this means: map it to Page
-	//#include "lib_media/common/subtitle.hpp"
+	TtmlDecoderConfig ttmlDecCfg;
+	ttmlDecCfg.utcStartTime = &utcStartTime;
+	auto ttmlDec = pipeline->add("TTMLDecoder", &ttmlDecCfg);
+	pipeline->connect(source, ttmlDec);
+	source = ttmlDec;
 
-	//Romain: send heartbeat from clock?
 	// segment and serialize
-	TtmlEncoderConfig ttmlCfg;
-	ttmlCfg.splitDurationInMs = cfg.segDurInMs;
-	ttmlCfg.maxDelayBeforeEmptyInMs = 30000; //Romain: given by Andreas, but shouldn't we put sth shorter here to avoid missing content?
-	ttmlCfg.timingPolicy = TtmlEncoderConfig::AbsoluteUTC; //Romain: should be, right?
-	ttmlCfg.utcStartTime = &utcStartTime;
-	auto ttmlEnc = pipeline->add("TTMLEncoder", &ttmlCfg);
+	TtmlEncoderConfig ttmlEncCfg;
+	ttmlEncCfg.splitDurationInMs = cfg.segDurInMs;
+	ttmlEncCfg.maxDelayBeforeEmptyInMs = 30000; //Romain: given by Andreas, but shouldn't we put sth shorter here to avoid missing content?
+	ttmlEncCfg.timingPolicy = TtmlEncoderConfig::AbsoluteUTC; //Romain: should be, right?
+	ttmlEncCfg.utcStartTime = &utcStartTime;
+	auto ttmlEnc = pipeline->add("TTMLEncoder", &ttmlEncCfg);
 	pipeline->connect(source, ttmlEnc);
 	source = ttmlEnc;
 
 	// push to the ever-growing file
-	//Romain
-	auto sink = pipeline->addModule<Out::File>(cfg.output);
+	//TODO add test: 00:00:00.000,default_msg_1.xml
+	auto sink = pipeline->addModule<EverGrowingPlaylistSink>(cfg.output, cfg.segDurInMs);
 	pipeline->connect(source, sink);
 
 	utcStartTime.startTime = fractionToClock(getUTC());
