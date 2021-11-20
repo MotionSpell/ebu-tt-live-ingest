@@ -2,11 +2,12 @@
 #include "lib_utils/system_clock.hpp"
 #include "lib_utils/time.hpp"
 #include "options.hpp"
+#include <cassert>
 
 // modules
 #include "lib_media/out/file.hpp"
+#include "plugins/SubtitleEncoder/subtitle_encoder.hpp"
 #include "plugins/TtmlDecoder/ttml_decoder.hpp"
-#include "plugins/TtmlEncoder/ttml_encoder.hpp"
 
 using namespace Modules;
 using namespace Pipelines;
@@ -56,43 +57,43 @@ struct UtcStartTime : IUtcStartTimeQuery {
 UtcStartTime utcStartTime;
 
 struct EverGrowingPlaylistSink : ModuleS {
-	EverGrowingPlaylistSink(KHost*, const std::string &playlistFn, int segDurInMs)
-	: playlistFn(playlistFn), segDurInMs(segDurInMs) {}
+		EverGrowingPlaylistSink(KHost*, const std::string &playlistFn, int segDurInMs)
+			: playlistFn(playlistFn), segDurInMs(segDurInMs) {}
 
-	void processOne(Data data) override {
-		char buf[64] = {};
+		void processOne(Data data) override {
+			char buf[64] = {};
 
-		// write data
-		{
-			auto f = fopen(buf, "wt");
-			snprintf(buf, sizeof(buf), "default_msg_%d.xml", seqCounter);
-			fwrite(data->data().ptr, 1, data->data().len, f);
-			fclose(f);
+			// write data
+			{
+				auto f = fopen(buf, "wt");
+				snprintf(buf, sizeof(buf), "default_msg_%d.xml", seqCounter);
+				fwrite(data->data().ptr, 1, data->data().len, f);
+				fclose(f);
+			}
+
+			// add to playlist
+			{
+				int64_t t = seqCounter * segDurInMs;
+				auto const msec = int(t % 1000);
+				t /= 1000;
+				auto const sec = int(t % 60);
+				t /= 60;
+				auto const min = int(t % 60);
+				t /= 60;
+				auto const hour = int(t);
+
+				snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%03d,default_msg_%d.xml\n", hour, min, sec, msec, seqCounter);
+
+				auto f = fopen(playlistFn.c_str(), "at");
+				fwrite(buf, 1, data->data().len, f);
+				fclose(f);
+			}
 		}
 
-		// add to playlist
-		{
-			int64_t t = seqCounter * segDurInMs;
-			auto const msec = int(t % 1000);
-			t /= 1000;
-			auto const sec = int(t % 60);
-			t /= 60;
-			auto const min = int(t % 60);
-			t /= 60;
-			auto const hour = int(t);
-
-			snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%03d,default_msg_%d.xml\n", hour, min, sec, msec, seqCounter);
-
-			auto f = fopen(playlistFn.c_str(), "at");
-			fwrite(buf, 1, data->data().len, f);
-			fclose(f);
-		}
-	}
-
-private:
-	std::string playlistFn;
-	int segDurInMs = 0;
-	int seqCounter = 0;
+	private:
+		std::string playlistFn;
+		int segDurInMs = 0;
+		int seqCounter = 0;
 };
 }
 
@@ -102,10 +103,10 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	IFilter *source = nullptr;
 
 	// input
-	SocketInputConfig mcast;
-	mcast.isTcp = true;
-	mcast.isMulticast = false;
-	source = pipeline->add("SocketInput", &mcast);
+	SocketInputConfig sockCfg;
+	sockCfg.isTcp = true;
+	sockCfg.isMulticast = false;
+	source = pipeline->add("SocketInput", &sockCfg);
 
 	// extract text and add realtime timestamp
 	TtmlDecoderConfig ttmlDecCfg;
@@ -115,14 +116,21 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	source = ttmlDec;
 
 	// segment and serialize
-	TtmlEncoderConfig ttmlEncCfg;
-	ttmlEncCfg.splitDurationInMs = cfg.segDurInMs;
-	ttmlEncCfg.maxDelayBeforeEmptyInMs = 30000; //Romain: given by Andreas, but shouldn't we put sth shorter here to avoid missing content?
-	ttmlEncCfg.timingPolicy = TtmlEncoderConfig::AbsoluteUTC; //Romain: should be, right?
-	ttmlEncCfg.utcStartTime = &utcStartTime;
-	auto ttmlEnc = pipeline->add("TTMLEncoder", &ttmlEncCfg);
-	pipeline->connect(source, ttmlEnc);
-	source = ttmlEnc;
+	SubtitleEncoderConfig subEncCfg;
+	subEncCfg.splitDurationInMs = cfg.segDurInMs;
+	subEncCfg.maxDelayBeforeEmptyInMs = 30000; //Romain: given by Andreas, but shouldn't we put sth shorter here to avoid missing content? // Romain: is present in EBU TT Live source
+	//Romain: subEncCfg.lang = ???;
+	if (cfg.format == "ttml") {
+		subEncCfg.timingPolicy = SubtitleEncoderConfig::AbsoluteUTC; //Romain: should be, right?
+	} else {
+		assert(cfg.format == "webvtt");
+		subEncCfg.isWebVTT = true;
+		subEncCfg.timingPolicy = SubtitleEncoderConfig::RelativeToMedia;
+	}
+	subEncCfg.utcStartTime = &utcStartTime;
+	auto subEnc = pipeline->add("SubtitleEncoder", &subEncCfg);
+	pipeline->connect(source, subEnc);
+	source = subEnc;
 
 	// push to the ever-growing file
 	//TODO add test: 00:00:00.000,default_msg_1.xml

@@ -37,8 +37,8 @@ Config parseCommandLine(int argc, char const* argv[]) {
 	if (cfg.segDurInMs <= 0)
 		throw std::runtime_error("invalid segment duration, must be positive: invalid command line, use --help");
 
-	if (cfg.format != "ttml")
-		throw std::runtime_error("invalid output format, only \"ttml\" is implemented");
+	if (cfg.format != "ttml" && cfg.format != "webvtt")
+		throw std::runtime_error("invalid subtitle format, only \"ttml\" is implemented");
 
 	sscanf(urls[0].c_str(), "%d.%d.%d.%d:%d",
 	    &cfg.sockInCfg.ipAddr[0],
@@ -50,7 +50,8 @@ Config parseCommandLine(int argc, char const* argv[]) {
 	std::cerr << "Detected options:\n"
 	    "\tinput                 =\"" << urls[0] << "\"\n"
 	    "\toutput                =" << cfg.output << "\n"
-	    "\tsegment-duration-in-ms=" << cfg.segDurInMs << "\n";
+	    "\tsegment-duration-in-ms=" << cfg.segDurInMs << "\n"
+	    "\tsubtitle format       =" << cfg.format << "\n";
 
 	return cfg;
 }
