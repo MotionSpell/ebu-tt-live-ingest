@@ -8,5 +8,5 @@ struct Config {
 	SocketInputConfig sockInCfg {};
 	std::string output;
 	std::string format;
-	int segDurInMs = 0;
+	int segDurInMs = 2000;
 };
