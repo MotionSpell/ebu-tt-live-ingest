@@ -1,3 +1,0 @@
-[submodule "subtitle-live-ingester/signals"]
-	path = subtitle-live-ingester/signals
-	url = git@git.gpac-licensing.com:rbouqueau/signals.git

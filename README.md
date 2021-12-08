@@ -19,3 +19,6 @@ A sample EBU-TT-Live in available in the ```sample/``` folder.
  - serialize to WebVTT and TTML dialects
  - feed the Subtitle Live Inserter input
 
+To build the dependencies, please follow the instructions at https://git.gpac-licensing.com/SubStance/subtitle-live-inserter#build.
+
+
