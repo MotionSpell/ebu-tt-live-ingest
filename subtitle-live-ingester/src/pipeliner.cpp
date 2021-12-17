@@ -98,12 +98,34 @@ struct EverGrowingPlaylistSink : ModuleS {
 				fprintf(f, buf);
 				fclose(f);
 			}
+
+			seqCounter++;
 		}
 
 	private:
 		std::string playlistFn;
 		int segDurInMs = 0;
 		int seqCounter = 0;
+};
+
+struct HeartBeat : Module {
+		HeartBeat(KHost *host) {
+			host->activate(true);
+			addOutput();
+		}
+		void process() override {
+			auto const now = g_SystemClock->now();
+			if (now - lastNow >= maxRefresh) {
+				auto out = std::make_shared<DataRaw>(0);
+				out->setMediaTime(fractionToClock(now));
+				outputs[0]->post(out);
+				lastNow = now;
+			}
+		}
+
+private:
+		Fraction const maxRefresh = Fraction(500, 1000); /*500ms*/
+		Fraction lastNow;
 };
 }
 
@@ -126,7 +148,7 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	// segment and serialize
 	SubtitleEncoderConfig subEncCfg;
 	subEncCfg.splitDurationInMs = cfg.segDurInMs;
-	subEncCfg.maxDelayBeforeEmptyInMs = 30000; //Romain: given by Andreas, but shouldn't we put sth shorter here to avoid missing content? // Romain: is present in EBU TT Live source
+	subEncCfg.maxDelayBeforeEmptyInMs = 0; //Romain: 30s given by Andreas, but shouldn't we put sth shorter here to avoid missing content? // Romain: is present in EBU TT Live source
 	//Romain: subEncCfg.lang = ???;
 	if (cfg.format == "ttml") {
 		subEncCfg.timingPolicy = SubtitleEncoderConfig::AbsoluteUTC; //Romain: should be, right?
@@ -140,8 +162,11 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	pipeline->connect(source, subEnc);
 	source = subEnc;
 
+	// heartbeat to flush output subtitles even when there is not input
+	auto heartbeater = pipeline->addModule<HeartBeat>();
+	pipeline->connect(heartbeater, subEnc, true);
+
 	// push to the ever-growing file
-	//TODO add test: 00:00:00.000,default_msg_1.xml
 	auto sink = pipeline->addModule<EverGrowingPlaylistSink>(cfg.output, cfg.segDurInMs);
 	pipeline->connect(source, sink);
 
