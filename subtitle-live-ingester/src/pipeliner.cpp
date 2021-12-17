@@ -103,10 +103,9 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	IFilter *source = nullptr;
 
 	// input
-	SocketInputConfig sockCfg;
-	sockCfg.isTcp = true;
-	sockCfg.isMulticast = false;
-	source = pipeline->add("SocketInput", &sockCfg);
+	cfg.sockInCfg.isTcp = true;
+	cfg.sockInCfg.isMulticast = false;
+	source = pipeline->add("SocketInput", &cfg.sockInCfg);
 
 	// extract text and add realtime timestamp
 	TtmlDecoderConfig ttmlDecCfg;
