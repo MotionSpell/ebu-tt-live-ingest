@@ -1,5 +1,4 @@
 #include "lib_pipeline/pipeline.hpp"
-#include "lib_utils/system_clock.hpp"
 #include "lib_utils/time.hpp"
 #include "options.hpp"
 #include <cassert>
@@ -65,8 +64,14 @@ struct EverGrowingPlaylistSink : ModuleS {
 
 			// write data
 			{
-				auto f = fopen(buf, "wt");
 				snprintf(buf, sizeof(buf), "default_msg_%d.xml", seqCounter);
+
+				auto f = fopen(buf, "wt");
+				if (!f) {
+					std::string msg("Can't open data sequence file: ");
+					msg += playlistFn;
+					throw error(msg.c_str());
+				}
 				fwrite(data->data().ptr, 1, data->data().len, f);
 				fclose(f);
 			}
@@ -85,7 +90,12 @@ struct EverGrowingPlaylistSink : ModuleS {
 				snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%03d,default_msg_%d.xml\n", hour, min, sec, msec, seqCounter);
 
 				auto f = fopen(playlistFn.c_str(), "at");
-				fwrite(buf, 1, data->data().len, f);
+				if (!f) {
+					std::string msg("Can't open output playlist file: ");
+					msg += playlistFn;
+					throw error(msg.c_str());
+				}
+				fprintf(f, buf);
 				fclose(f);
 			}
 		}
@@ -109,7 +119,6 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 
 	// extract text and add realtime timestamp
 	TtmlDecoderConfig ttmlDecCfg;
-	ttmlDecCfg.utcStartTime = &utcStartTime;
 	auto ttmlDec = pipeline->add("TTMLDecoder", &ttmlDecCfg);
 	pipeline->connect(source, ttmlDec);
 	source = ttmlDec;

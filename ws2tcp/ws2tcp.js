@@ -81,7 +81,7 @@ module.exports = WebSocketPipe;
 
 // create websocket server
 var WebSocketServer = require('ws').Server;
-var server = new WebSocketServer({ port: 9998, path: '/mysocket' });
+var server = new WebSocketServer({ port: 9998, path: '/mysocket/publish' });
 
 // create TCP server
 var debug = true;
