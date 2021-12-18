@@ -1,0 +1,17 @@
+{
+  "name": "ws2tcp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ws2tcp.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "volta": {
+    "node": "12.22.7"
+  },
+  "dependencies": {
+    "ws": "^8.2.3"
+  }
+}
