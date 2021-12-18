@@ -72,8 +72,8 @@ function _newTcpClient(self, webSocket) {
 function log(debug, path, prefix, value) {
     if (debug) {
         try {
-            logger.debug('ws2tcp[' + path + '] ' + prefix + value.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, ''));
-        } catch (e) { /* ignore any exceptions */ }
+            console.log('ws2tcp[' + path + '] ' + prefix + value.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, ''));
+        } catch (e) { console.warn(e) }
     }
 };
 
