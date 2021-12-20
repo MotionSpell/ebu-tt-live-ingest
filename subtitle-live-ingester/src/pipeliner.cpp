@@ -95,7 +95,7 @@ struct EverGrowingPlaylistSink : ModuleS {
 					msg += playlistFn;
 					throw error(msg.c_str());
 				}
-				fprintf(f, buf);
+				fprintf(f, "%s", buf);
 				fclose(f);
 			}
 
