@@ -1,4 +1,5 @@
 #include "lib_pipeline/pipeline.hpp"
+#include "lib_utils/os.hpp" // dirExists, mkdir
 #include "lib_utils/time.hpp"
 #include "options.hpp"
 #include <cassert>
@@ -14,6 +15,11 @@ using namespace Pipelines;
 extern const char *g_appName;
 
 namespace {
+void ensureDir(const std::string &path) {
+	if(!path.empty() && !dirExists(path))
+		mkdir(path);
+}
+
 struct Logger : LogSink {
 		void send(Level level, const char *msg) override {
 			if (level == Level::Debug)
@@ -57,14 +63,20 @@ UtcStartTime utcStartTime;
 
 struct EverGrowingPlaylistSink : ModuleS {
 		EverGrowingPlaylistSink(KHost*, const std::string &playlistFn, int segDurInMs)
-			: playlistFn(playlistFn), segDurInMs(segDurInMs) {}
+			: playlistFn(playlistFn), segDurInMs(segDurInMs) {
+			auto const subdir = playlistFn.substr(0, playlistFn.find_last_of("/") + 1);
+			ensureDir(subdir);
+		}
 
 		void processOne(Data data) override {
-			char buf[64] = {};
+			char buf[512] = {};
 
 			// write data
 			{
-				snprintf(buf, sizeof(buf), "default_msg_%d.xml", seqCounter);
+				auto subdir = playlistFn.substr(0, playlistFn.find_last_of("/") + 1);
+				if (subdir.empty())
+					subdir = ".";
+				snprintf(buf, sizeof(buf), "%s/default_msg_%d.xml", subdir.c_str(), seqCounter);
 
 				auto f = fopen(buf, "wt");
 				if (!f) {
@@ -123,7 +135,7 @@ struct HeartBeat : Module {
 			}
 		}
 
-private:
+	private:
 		Fraction const maxRefresh = Fraction(500, 1000); /*500ms*/
 		Fraction lastNow;
 };
