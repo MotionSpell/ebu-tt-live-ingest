@@ -157,8 +157,7 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 
 	// segment and serialize
 	SubtitleEncoderConfig subEncCfg;
-	subEncCfg.splitDurationInMs = cfg.segDurInMs;
-	subEncCfg.maxDelayBeforeEmptyInMs = 0; //Romain: 30s given by Andreas, but shouldn't we put sth shorter here to avoid missing content? // Romain: is present in EBU TT Live source
+	subEncCfg.maxDelayBeforeEmptyInMs = subEncCfg.splitDurationInMs = cfg.segDurInMs;
 	//Romain: subEncCfg.lang = ???;
 	if (cfg.format == "ttml") {
 		subEncCfg.timingPolicy = SubtitleEncoderConfig::AbsoluteUTC; //Romain: should be, right?
