@@ -38,7 +38,7 @@ Config parseCommandLine(int argc, char const* argv[]) {
 		throw std::runtime_error("invalid segment duration, must be positive: invalid command line, use --help");
 
 	if (cfg.format != "ttml" && cfg.format != "webvtt")
-		throw std::runtime_error("invalid subtitle format, only \"ttml\" is implemented");
+		throw std::runtime_error("invalid subtitle format, only \"webvtt\" or \"ttml\" is implemented");
 
 	sscanf(urls[0].c_str(), "%d.%d.%d.%d:%d",
 	    &cfg.sockInCfg.ipAddr[0],
@@ -55,13 +55,6 @@ Config parseCommandLine(int argc, char const* argv[]) {
 
 	return cfg;
 }
-}
-
-void safeStop() {
-	if (g_Pipeline) {
-		g_Pipeline->exitSync();
-		g_Pipeline = nullptr;
-	}
 }
 
 void safeMain(int argc, const char* argv[]) {
