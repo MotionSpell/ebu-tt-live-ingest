@@ -10,7 +10,7 @@ A sample EBU-TT-Live in available in the ```sample/``` folder.
 - ```npm install ws```
 - ```node ws2tcp```
 - ```ncat -l 9999``` -> connect to tcp first (on port 9999 by default)
-- https://websocketking.com/ -> then connect to WebSocket (on port 9998 by default)
+- http://ebu.github.io/ebu-tt-live-toolkit/ui/user_input_producer/index.html -> then connect to WebSocket (on port 9998 by default)
 
 ```subtitle-live-ingester``` is responsible for:
  - extracting text from EBU-TT-Live 

@@ -20,6 +20,7 @@ var WebSocketPipe = function (wsServer, debug, tcpHost, tcpPort) {
         var target = _newTcpClient(self, webSocket);
         webSocket.on('message', function (msg) {
             log(self.debug, self.wsPath, _TO_TCP, msg.toString('hex', 0, 32) + ' ' + msg.toString('ascii', 0, 32));
+            // log(self.debug, self.wsPath, _FROM_TCP, msg.toString('ascii'));
             if (webSocket.protocol === 'base64') {
                 target.write(new Buffer(msg, 'base64'));
             } else {
@@ -45,6 +46,7 @@ function _newTcpClient(self, webSocket) {
     });
     tcpClient.on('data', function (data) {
         log(self.debug, self.wsPath, _FROM_TCP, data.toString('hex', 0, 32) + ' ' + data.toString('ascii', 0, 32));
+        // log(self.debug, self.wsPath, _FROM_TCP, data.toString('ascii'));
         try {
             if (webSocket.protocol === 'base64') {
                 webSocket.send(new Buffer(data).toString('base64'));
@@ -72,7 +74,7 @@ function _newTcpClient(self, webSocket) {
 function log(debug, path, prefix, value) {
     if (debug) {
         try {
-            console.log('ws2tcp[' + path + '] ' + prefix + value.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, ''));
+            console.log('ws2tcp[' + path + '] ' + prefix + value.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '') + '\n');
         } catch (e) { console.warn(e) }
     }
 };
