@@ -87,6 +87,6 @@ var server = new WebSocketServer({ port: 9998, path: '/ebu-tt/publish' });
 
 // create TCP server
 var debug = true;
-var tcpServerHost = 'localhost';
+var tcpServerHost = '127.0.0.1';
 var tcpServerPort = 9999;
 var wspipe = new WebSocketPipe(server, debug, tcpServerHost, tcpServerPort);
