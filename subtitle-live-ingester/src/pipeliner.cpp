@@ -3,6 +3,7 @@
 #include "lib_utils/time.hpp"
 #include "options.hpp"
 #include <cassert>
+#include <thread>
 
 // modules
 #include "lib_media/out/file.hpp"
@@ -11,6 +12,7 @@
 
 using namespace Modules;
 using namespace Pipelines;
+using namespace std;
 
 extern const char *g_appName;
 
@@ -130,6 +132,8 @@ struct HeartBeat : Module {
 				outputs[0]->post(out);
 				lastNow = now;
 			}
+
+			std::this_thread::sleep_for(20ms);
 		}
 
 	private:
