@@ -163,8 +163,9 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	SubtitleEncoderConfig subEncCfg;
 	subEncCfg.maxDelayBeforeEmptyInMs = subEncCfg.splitDurationInMs = cfg.segDurInMs;
 	//Romain: subEncCfg.lang = ???;
+	subEncCfg.forceEmptyPage = true;
 	if (cfg.format == "ttml") {
-		subEncCfg.timingPolicy = SubtitleEncoderConfig::AbsoluteUTC; //Romain: should be, right?
+		subEncCfg.timingPolicy = SubtitleEncoderConfig::AbsoluteUTC;
 	} else {
 		assert(cfg.format == "webvtt");
 		subEncCfg.isWebVTT = true;
@@ -175,7 +176,7 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	pipeline->connect(source, subEnc);
 	source = subEnc;
 
-	// heartbeat to flush output subtitles even when there is not input
+	// heartbeat to flush output subtitles even when there is no input
 	auto heartbeater = pipeline->addModule<HeartBeat>();
 	pipeline->connect(heartbeater, subEnc, true);
 
