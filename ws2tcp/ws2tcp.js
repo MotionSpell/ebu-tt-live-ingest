@@ -4,7 +4,9 @@ const WebSocketServer = require('ws').Server;
 
 const formatPayload = data => {
     try {
-        return (data.toString('hex', 0, 32) + ' ' + data.toString('ascii', 0, 32)).replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '') + '\n')
+        return (
+            data.toString('hex', 0, 32) + ' ' + data.toString('ascii', 0, 32)
+            ).replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '') + '\n'
     } catch (e) { 
         return data
     }
