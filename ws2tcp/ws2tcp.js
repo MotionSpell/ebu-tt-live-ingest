@@ -90,7 +90,7 @@ class WebSocketPipe {
         }
     };
 
-    onTcpConnectionClosed = () => {
+    onTcpConnectionEnd = () => {
         log("error", "tcp disconnected, closing websocket session");
         this.wsSession.close();
     };
