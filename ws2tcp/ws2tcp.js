@@ -2,33 +2,34 @@ const logger = require('util');
 const net = require('net');
 const WebSocketServer = require('ws').Server;
 
-const _TO_TCP = '--> ';
-const _FROM_TCP = '<-- ';
-const _TARGET = '<-> ';
-
-// debug request/response
-function logMessage(path, prefix, value) {
+const formatPayload = data => {
     try {
-        console.debug('ws2tcp[' + path + '] ' + prefix + value.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '') + '\n');
-    } catch (e) { console.warn(e) }
+        return (data.toString('hex', 0, 32) + ' ' + data.toString('ascii', 0, 32)).replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '') + '\n')
+    } catch (e) { 
+        return data
+    }
 };
+
+const log = (level, str) => {
+    console[level]("[ws-server]", str);
+}
 
 class TcpClient {
 
-    constructor(host, port, log) {
+    constructor(host, port) {
         
         this.tcpClient = new net.Socket();
         this.tcpClient.setKeepAlive(true);
 
         this.tcpClient.on('end', () => {
-            console.error("tcp connection closed. exit process.");
+            log("error", "tcp connection closed. exit process.");
             this.destroy();
         });
 
         this.tcpClient.on('error', (err) => {
             switch (err.code){
                 case 'ECONNREFUSED':
-                    console.error(`failed to connect to tcp socket on ${err.address}:${err.port}`);
+                    log("error", `failed to connect to tcp socket on ${err.address}:${err.port}`);
                     this.destroy(1);
                     break;
                 default:
@@ -38,13 +39,13 @@ class TcpClient {
         });
         
         this.tcpClient.connect(port, host, () => {
-            console.log(_TARGET + 'connected');
+            log("info", `connected to ${port}:${host}`);
         });
         
     }
 
     destroy = (errcode=0) => {
-        this.tcpClient.end();
+        this.tcpClient.destroy();
         this.tcpClient = null;
         process.exit([errcode]);
     }
@@ -65,60 +66,67 @@ class TcpClient {
 
 class WebSocketPipe {
 
-    constructor (session, target){
-        this.session = session;
-        this.target = target;
+    constructor (wsSession, tcpTarget, verbose=true){
+        this.wsSession = wsSession;
+        this.tcpTarget = tcpTarget;
+        this.verbose = verbose;
     }
 
     onTcpData = data => {
-        console.log('received tcp data from target: ', data.toString('hex', 0, 32) + ' ' + data.toString('ascii', 0, 32));
+        if (this.verbose){
+            log("info", `tcp --> ${formatPayload(data)}`);
+        }
         try {
-            if (this.session.protocol === 'base64') {
-                this.session.send(new Buffer(data).toString('base64'));
+            if (this.wsSession.protocol === 'base64') {
+                this.wsSession.send(new Buffer(data).toString('base64'));
             } else {
-                this.session.send(data, { binary: true });
+                this.wsSession.send(data, { binary: true });
             }
         } catch (e) {
-            console.log("websocket exception, closing session");
+            log("warn", `closing websocket session: ${e}`);
             self.session.close();
         }
     };
 
     onTcpConnectionClosed = () => {
-        console.log(_TARGET + "tcp disconnected, closing websocket session");
-        this.session.close();
+        log("error", "tcp disconnected, closing websocket session");
+        this.wsSession.close();
     };
 
     onWsMessage = msg => {
-        console.log(_TO_TCP + msg.toString('hex', 0, 32) + ' ' + msg.toString('ascii', 0, 32));
-        if (this.session.protocol === 'base64') {
-            this.target.write(new Buffer(msg, 'base64'));
+        if (this.verbose){
+            log("info", `ws --> ${formatPayload(msg)}`);
+        }
+        if (this.wsSession.protocol === 'base64') {
+            this.tcpTarget.write(new Buffer(msg, 'base64'));
         } else {
-            this.target.write(msg, 'binary');
+            this.tcpTarget.write(msg, 'binary');
         }
     };
 
     onWsError = (err) => {
-        console.error(err)
+        log("error", `ws disconnected: ${err}`);
     }
 
     onWsClose = (code, reason) => {
-        console.log(_TARGET + "ws disconnected: " + code + '[' + reason + ']');
-        this.destroy()
+        log("info", `ws closing: ${code} [${reason}]`);
+        this.destroy();
     };
 
     init = () => {
-        this.session.on('close', this.onWsClose);
-        this.session.on('error', this.onWsError);
-        this.session.on('message', this.onWsMessage);
-        this.target.on('data', this.onTcpData);
+        this.tcpTarget.on('data', this.onTcpData);
+        this.tcpTarget.on('end', this.onTcpConnectionEnd);
+        this.wsSession.on('close', this.onWsClose);
+        this.wsSession.on('error', this.onWsError);
+        this.wsSession.on('message', this.onWsMessage);
     }
 
     destroy = () => {
-        this.session.removeListener('close', this.onWsClose);
-        this.session.removeListener('error', this.onWsError);
-        this.session.removeListener('message', this.onWsMessage);
-        this.target.removeListener('data', this.onTcpData);
+        this.tcpTarget.removeListener('data', this.onTcpData);
+        this.tcpTarget.removeListener('end', this.onTcpConnectionEnd);
+        this.wsSession.removeListener('close', this.onWsClose);
+        this.wsSession.removeListener('error', this.onWsError);
+        this.wsSession.removeListener('message', this.onWsMessage);
     };
 }
 
@@ -136,14 +144,14 @@ const server = new WebSocketServer({ port: 9998, path: wsPath });
 server.on('connection', function (webSocket) {
 
     if ( session == null ){
-        console.log('new ' + webSocket.protocol);
+        log("info", `new ${webSocket.protocol}`);
         webSocket.on('close', () => {
             session = null
         });
-        session = new WebSocketPipe(webSocket, target);
+        session = new WebSocketPipe(webSocket, target, verbose=true);
         session.init();
     } else {
-        console.warn('a websocket session already exists');
+        log("warn", "a websocket session already exists");
         webSocket.close();
     }
 
