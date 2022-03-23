@@ -139,16 +139,11 @@ let target = new TcpClient(tcpServerHost, tcpServerPort);
 
 const wsPath = '/'+ (process.env.SUBSTANCE_EBUTT_SEQUENCE_ID || 'ebu-tt') +'/publish';
 let session = null;
-let p = 9998;
-try {
-    let n = parseInt(process.env.SUBSTANCE_WS_PORT);
-    if (n >= 0 && n < 65535){
-        p = n;
-    } else {
-        throw Error();
-    }
-} catch (err){
-    console.error(`Invalid port number ${n} specified with SUBSTANCE_WS_PORT - using default port 9998`);
+
+let p = parseInt(process.env.SUBSTANCE_WS_PORT);
+if (!(p >= 0 && p <= 65535)) {
+    console.error(`Invalid port number ${p} specified with SUBSTANCE_WS_PORT - using default port 9998`);
+    p = 9998;
 }
 
 const server = new WebSocketServer({ port: p, path: wsPath });
