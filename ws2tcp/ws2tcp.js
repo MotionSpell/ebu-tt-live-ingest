@@ -41,7 +41,7 @@ class TcpClient {
         });
         
         this.tcpClient.connect(port, host, () => {
-            log("info", `connected to ${port}:${host}`);
+            log("info", `connected to ${host}:${port}`);
         });
         
     }
@@ -133,16 +133,26 @@ class WebSocketPipe {
 }
 
 
-const debug = true;
-
 const tcpServerHost = '127.0.0.1';
 const tcpServerPort = 9999;
 let target = new TcpClient(tcpServerHost, tcpServerPort);
 
-const wsPath = '/ebu-tt/publish'
+const wsPath = '/'+ (process.env.SUBSTANCE_EBUTT_SEQUENCE_ID || 'ebu-tt') +'/publish';
 let session = null;
+let p = 9998;
+try {
+    let n = parseInt(process.env.SUBSTANCE_WS_PORT);
+    if (n >= 0 && n < 65535){
+        p = n;
+    } else {
+        throw Error();
+    }
+} catch (err){
+    console.error(`Invalid port number ${n} specified with SUBSTANCE_WS_PORT - using default port 9998`);
+}
 
-const server = new WebSocketServer({ port: 9998, path: wsPath });
+const server = new WebSocketServer({ port: p, path: wsPath });
+
 server.on('connection', function (webSocket) {
 
     if ( session == null ){
