@@ -1,6 +1,7 @@
 #include "lib_pipeline/pipeline.hpp"
 #include "lib_utils/os.hpp" // dirExists, mkdir
 #include "lib_utils/time.hpp"
+#include "lib_media/common/attributes.hpp"
 #include "options.hpp"
 #include <cassert>
 #include <thread>
@@ -128,7 +129,7 @@ struct HeartBeat : Module {
 			auto const now = g_SystemClock->now();
 			if (now - lastNow >= maxRefresh) {
 				auto out = std::make_shared<DataRaw>(0);
-				out->setMediaTime(fractionToClock(now));
+				out->set(PresentationTime{fractionToClock(now)});
 				outputs[0]->post(out);
 				lastNow = now;
 			}
