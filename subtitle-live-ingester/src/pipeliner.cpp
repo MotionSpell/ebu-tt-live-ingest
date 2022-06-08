@@ -149,7 +149,7 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	auto pipeline = std::make_unique<Pipeline>(&logger);
 	IFilter *source = nullptr;
 
-	// input
+	// socket input
 	cfg.sockInCfg.isTcp = true;
 	cfg.sockInCfg.isMulticast = false;
 	source = pipeline->add("SocketInput", &cfg.sockInCfg);

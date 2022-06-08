@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Profile: EBU-TT-D-Basic-DE -->
+<tt:tt xmlns:ttp="http://www.w3.org/ns/ttml#parameter" xmlns:tts="http://www.w3.org/ns/ttml#styling"
+    xmlns:tt="http://www.w3.org/ns/ttml" xmlns:ebuttm="urn:ebu:tt:metadata" ttp:timeBase="media" xml:lang="de"
+    ttp:cellResolution="50 30">
+    <tt:head>
+        <tt:metadata>
+            <ebuttm:documentMetadata>
+                <ebuttm:documentEbuttVersion>v1.0</ebuttm:documentEbuttVersion>
+            </ebuttm:documentMetadata>
+        </tt:metadata>
+        <tt:styling>
+            <tt:style xml:id="defaultStyle" tts:fontFamily="Verdana, Arial, Tiresias" tts:fontSize="160%"
+                tts:lineHeight="125%" />
+            <tt:style xml:id="textWhite" tts:color="#ffffff" tts:backgroundColor="#000000c2" />
+            <tt:style xml:id="textRed" tts:color="#ff0000" tts:backgroundColor="#000000c2" />
+            <tt:style xml:id="textCenter" tts:textAlign="center" />
+        </tt:styling>
+        <tt:layout>
+            <tt:region xml:id="bottom" tts:origin="10% 10%" tts:extent="80% 80%" tts:displayAlign="after" />
+        </tt:layout>
+    </tt:head>
+    <tt:body>
+        <tt:div style="defaultStyle">
+            <tt:p xml:id="sub1" region="bottom" begin="00:00:00.000" end="00:00:02.120" style="textCenter">
+                <tt:span style="textWhite">A </tt:span>
+                <tt:span style="textRed">red</tt:span>
+                <tt:span style="textWhite"> Word</tt:span>
+                <tt:br />
+                <tt:span style="textWhite">in a two row subtitle</tt:span>
+            </tt:p>
+        </tt:div>
+    </tt:body>
+</tt:tt>

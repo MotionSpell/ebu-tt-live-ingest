@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tt:tt ttp:cellResolution="32 15" ttp:timeBase="media" xml:lang="de-DE" xmlns:tt="http://www.w3.org/ns/ttml" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" xmlns:tts="http://www.w3.org/ns/ttml#styling" xmlns:xml="http://www.w3.org/XML/1998/namespace">
+  <tt:head>
+    <tt:styling>
+      <tt:style tts:fontFamily="Verdana,Arial,Tiresias" xml:id="SEQ62818226682384.defaultStyle"/>
+      <tt:style tts:backgroundColor="#000000c2" tts:color="#FFFFFF" xml:id="SEQ62818226682384.textWhite"/>
+      <tt:style tts:textAlign="center" xml:id="SEQ62818226682384.textCenter"/>
+      <tt:style tts:fontFamily="Verdana,Arial,Tiresias" xml:id="SEQ62818226682854.defaultStyle"/>
+      <tt:style tts:backgroundColor="#000000c2" tts:color="#FFFFFF" xml:id="SEQ62818226682854.textWhite"/>
+      <tt:style tts:textAlign="center" xml:id="SEQ62818226682854.textCenter"/>
+      <tt:style tts:fontFamily="Verdana,Arial,Tiresias" xml:id="SEQ62818226683079.defaultStyle"/>
+      <tt:style tts:backgroundColor="#000000c2" tts:color="#FFFFFF" xml:id="SEQ62818226683079.textWhite"/>
+      <tt:style tts:textAlign="center" xml:id="SEQ62818226683079.textCenter"/>
+      <tt:style tts:fontSize="160.0%" tts:lineHeight="125.0%" xml:id="autogenFontStyle_None_160.0"/>
+    </tt:styling>
+    <tt:layout>
+      <tt:region tts:displayAlign="after" tts:extent="80% 80%" tts:origin="10% 10%" xml:id="SEQ62818226682384.bottom"/>
+      <tt:region tts:displayAlign="after" tts:extent="80% 80%" tts:origin="10% 10%" xml:id="SEQ62818226682854.bottom"/>
+      <tt:region tts:displayAlign="after" tts:extent="80% 80%" tts:origin="10% 10%" xml:id="SEQ62818226683079.bottom"/>
+    </tt:layout>
+  </tt:head>
+  <tt:body>
+    <tt:div style="SEQ62818226682384.defaultStyle">
+      <tt:p region="SEQ62818226682384.bottom" style="autogenFontStyle_None_160.0 SEQ62818226682384.textCenter" xml:id="SEQ62818226682384.ID001.1">
+        
+        
+        <tt:span begin="00:00:07.946" end="00:00:08.228" style="SEQ62818226682384.textWhite">Test1</tt:span>
+        
+      
+      </tt:p>
+    </tt:div>
+    <tt:div style="SEQ62818226682854.defaultStyle">
+      <tt:p region="SEQ62818226682854.bottom" style="autogenFontStyle_None_160.0 SEQ62818226682854.textCenter" xml:id="SEQ62818226682854.ID001.1">
+        
+        
+        <tt:span begin="00:00:08.228" end="00:00:08.454" style="SEQ62818226682854.textWhite">Test12</tt:span>
+        
+      
+      </tt:p>
+    </tt:div>
+    <tt:div style="SEQ62818226683079.defaultStyle">
+      <tt:p region="SEQ62818226683079.bottom" style="autogenFontStyle_None_160.0 SEQ62818226683079.textCenter" xml:id="SEQ62818226683079.ID001">
+        
+        
+        <tt:span begin="00:00:08.454" end="00:00:09.946" style="SEQ62818226683079.textWhite">Test123</tt:span>
+        
+      
+      </tt:p>
+    </tt:div>
+  </tt:body>
+</tt:tt>
