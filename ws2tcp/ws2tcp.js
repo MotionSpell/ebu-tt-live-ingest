@@ -1,10 +1,14 @@
 const net = require('net');
 const WebSocketServer = require('ws').Server;
 
+const padded = (v, n=2, f="0") => {
+    return String(v).padStart(n, f);
+}
+
 const log = (level, str) => {
-    const elapsed = Math.round(process.uptime()*10)/10
+    const elapsed = process.uptime().toFixed(1);
     const t = new Date();
-    console[level](`[${t.getUTCDay()}/${t.getUTCMonth()}/${t.getUTCFullYear()} ${t.getUTCHours()}:${t.getUTCMinutes()}:${t.getUTCSeconds()}][${elapsed}][ws-server][${level}]`, str);
+    console[level](`[${t.getUTCFullYear()}/${padded(t.getUTCMonth())}/${padded(t.getUTCDay())} ${padded(t.getUTCHours())}:${padded(t.getUTCMinutes())}:${padded(t.getUTCSeconds())}][${elapsed}][ws-server][${level}]`, str);
 }
 
 class TcpClient {
@@ -22,7 +26,7 @@ class TcpClient {
         this.tcpClient.on('error', (err) => {
             switch (err.code){
                 case 'ECONNREFUSED':
-                    log("error", `failed to connect to tcp socket on ${err.address}:${err.port}`);
+                    log("error", `failed to connect to ingester at ${err.address}:${err.port}`);
                     this.destroy(1);
                     break;
                 default:
