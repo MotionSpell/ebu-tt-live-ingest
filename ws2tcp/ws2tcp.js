@@ -1,19 +1,10 @@
-const logger = require('util');
 const net = require('net');
 const WebSocketServer = require('ws').Server;
 
-const formatPayload = data => {
-    try {
-        return (
-            data.toString('hex', 0, 32) + ' ' + data.toString('ascii', 0, 32)
-            ).replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '') + '\n'
-    } catch (e) { 
-        return data
-    }
-};
-
 const log = (level, str) => {
-    console[level]("[ws-server]", str);
+    const elapsed = Math.round(process.uptime()*10)/10
+    const t = new Date();
+    console[level](`[${t.getUTCDay()}/${t.getUTCMonth()}/${t.getUTCFullYear()} ${t.getUTCHours()}:${t.getUTCMinutes()}:${t.getUTCSeconds()}][${elapsed}][ws-server][${level}]`, str);
 }
 
 class TcpClient {
@@ -24,7 +15,7 @@ class TcpClient {
         this.tcpClient.setKeepAlive(true);
 
         this.tcpClient.on('end', () => {
-            log("error", "tcp connection closed. exit process.");
+            log("error", "connection to ingester closed. exit process.");
             this.destroy();
         });
 
@@ -41,7 +32,7 @@ class TcpClient {
         });
         
         this.tcpClient.connect(port, host, () => {
-            log("info", `connected to ${host}:${port}`);
+            log("info", `connected to ingester at ${host}:${port}`);
         });
         
     }
@@ -68,15 +59,17 @@ class TcpClient {
 
 class WebSocketPipe {
 
-    constructor (wsSession, tcpTarget, verbose=true){
+    constructor (wsSession, tcpTarget, verbose=false){
         this.wsSession = wsSession;
         this.tcpTarget = tcpTarget;
         this.verbose = verbose;
+        this.startTime = new Date()
     }
 
     onTcpData = data => {
+        log("info", `forwarding tcp data back to client: ${data.length} bytes`);
         if (this.verbose){
-            log("info", `tcp --> ${formatPayload(data)}`);
+            log("debug", data.toString())
         }
         try {
             if (this.wsSession.protocol === 'base64') {
@@ -91,13 +84,14 @@ class WebSocketPipe {
     };
 
     onTcpConnectionEnd = () => {
-        log("error", "tcp disconnected, closing websocket session");
+        log("error", "lost connection to ingester, closing websocket session");
         this.wsSession.close();
     };
 
     onWsMessage = msg => {
+        log("info", `websocket message received - ${msg.length} bytes.`);
         if (this.verbose){
-            log("info", `ws --> ${formatPayload(msg)}`);
+            log("debug", msg.toString())
         }
         if (this.wsSession.protocol === 'base64') {
             this.tcpTarget.write(new Buffer(msg, 'base64'));
@@ -107,11 +101,11 @@ class WebSocketPipe {
     };
 
     onWsError = (err) => {
-        log("error", `ws disconnected: ${err}`);
+        log("error", `websocket error - ${err}`);
     }
 
     onWsClose = (code, reason) => {
-        log("info", `ws closing: ${code} [${reason}]`);
+        log("info", `websocket connection closed - code=${code}, reason=[${reason}]`);
         this.destroy();
     };
 
@@ -121,6 +115,7 @@ class WebSocketPipe {
         this.wsSession.on('close', this.onWsClose);
         this.wsSession.on('error', this.onWsError);
         this.wsSession.on('message', this.onWsMessage);
+        log("info", "websocket server is ready, awaiting client connection.")
     }
 
     destroy = () => {
@@ -129,6 +124,7 @@ class WebSocketPipe {
         this.wsSession.removeListener('close', this.onWsClose);
         this.wsSession.removeListener('error', this.onWsError);
         this.wsSession.removeListener('message', this.onWsMessage);
+        log("info", "websocket server destroyed.")
     };
 }
 
@@ -142,26 +138,24 @@ let session = null;
 
 let p = parseInt(process.env.SUBSTANCE_WS_PORT);
 if (!(p >= 0 && p <= 65535)) {
-    console.error(`Invalid port number ${p} specified with SUBSTANCE_WS_PORT - using default port 9998`);
+    log('error', `invalid port number ${p} specified with SUBSTANCE_WS_PORT - using default port 9998`);
     p = 9998;
 }
 
-const server = new WebSocketServer({ port: p, path: wsPath });
-
+const server = new WebSocketServer({ port: p, path: wsPath })
 server.on('connection', function (webSocket) {
-
     if ( session == null ){
-        log("info", `new ${webSocket.protocol}`);
         webSocket.on('close', () => {
             session = null
+            log("info", `ready to accept new client connections.`);
         });
-        session = new WebSocketPipe(webSocket, target, verbose=true);
+        session = new WebSocketPipe(webSocket, target, verbose=false);
         session.init();
+        log("info", `new websocket session initialized`);
     } else {
-        log("warn", "a websocket session already exists");
+        log("warn", "a websocket session already exists. Attempt to open a new session rejected.");
         webSocket.close();
     }
-
 });
 
 module.exports = WebSocketPipe;
