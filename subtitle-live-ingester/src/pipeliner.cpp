@@ -163,6 +163,7 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	// segment and serialize
 	SubtitleEncoderConfig subEncCfg;
 	subEncCfg.maxDelayBeforeEmptyInMs = subEncCfg.splitDurationInMs = cfg.segDurInMs;
+	subEncCfg.forceTtmlLegacy = cfg.legacy;
 	//Romain: subEncCfg.lang = ???;
 	subEncCfg.forceEmptyPage = true;
 	if (cfg.format == "ttml") {
