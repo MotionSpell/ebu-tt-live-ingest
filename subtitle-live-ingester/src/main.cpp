@@ -17,7 +17,7 @@ Config parseCommandLine(int argc, char const* argv[]) {
 
 	CmdLineOptions opt;
 	opt.add("o", "output", &cfg.output, "Output filename. The parent directory must exist.");
-	//opt.add("s", "segment-duration-in-ms", &cfg.segDurInMs, "Segment duration in milliseconds");
+	opt.add("d", "segment-duration-in-ms", &cfg.segDurInMs, "Segment duration in milliseconds");
 	opt.add("f", "subtitle-format", &cfg.format, "Output subtitle format: \"ttml\", \"webvtt\", or \"both\"");
 	opt.addFlag("l", "legacy", &cfg.legacy, "Activate TTML legacy layout (for compatibility tests).");
 	opt.addFlag("h", "help", &cfg.help, "Print usage and exit.");
