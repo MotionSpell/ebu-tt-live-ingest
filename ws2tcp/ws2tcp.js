@@ -1,15 +1,32 @@
 const net = require('net');
+const fs = require('fs');
 const WebSocketServer = require('ws').Server;
+
+const useSslWss = process.env.SUBSTANCE_SSL_CERT && process.env.SUBSTANCE_SSL_KEY;
+
+if (useSslWss){
+    if (!fs.existsSync(process.env.SUBSTANCE_SSL_CERT)){
+        console.warn("SSL/TLS certificate file not found:", process.env.SUBSTANCE_SSL_CERT);
+    }
+    if (!fs.existsSync(process.env.SUBSTANCE_SSL_KEY)){
+        console.warn("SSL/TLS private key file not found:", process.env.SUBSTANCE_SSL_KEY);
+    }
+}
+
+const server = useSslWss ? require('https').createServer({
+    cert: fs.readFileSync(process.env.SUBSTANCE_SSL_CERT),
+    key: fs.readFileSync(process.env.SUBSTANCE_SSL_KEY)
+}) : null;
 
 const padded = (v, n=2, f="0") => {
     return String(v).padStart(n, f);
-}
+};
 
 const log = (level, str) => {
     const elapsed = process.uptime().toFixed(1);
     const t = new Date();
     console[level](`[${t.getUTCFullYear()}/${padded(t.getUTCMonth())}/${padded(t.getUTCDay())} ${padded(t.getUTCHours())}:${padded(t.getUTCMinutes())}:${padded(t.getUTCSeconds())}][${elapsed}][ws-server][${level}]`, str);
-}
+};
 
 class TcpClient {
 
@@ -132,7 +149,6 @@ class WebSocketPipe {
     };
 }
 
-
 const tcpServerHost = '127.0.0.1';
 const tcpServerPort = 9999;
 let target = new TcpClient(tcpServerHost, tcpServerPort);
@@ -146,8 +162,16 @@ if (!(p >= 0 && p <= 65535)) {
     p = 9998;
 }
 
-const server = new WebSocketServer({ port: p, path: wsPath })
-server.on('connection', function (webSocket) {
+const wssCfg = { path: wsPath };
+
+if (server){
+    wssCfg["server"] = server;
+} else {
+    wssCfg["port"] = p;
+}
+const wss = new WebSocketServer(wssCfg);
+
+wss.on('connection', function (webSocket) {
     if ( session == null ){
         webSocket.on('close', () => {
             session = null
@@ -161,5 +185,9 @@ server.on('connection', function (webSocket) {
         webSocket.close();
     }
 });
+
+if (server){
+    server.listen(p);
+}
 
 module.exports = WebSocketPipe;
