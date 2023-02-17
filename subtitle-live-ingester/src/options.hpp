@@ -10,4 +10,5 @@ struct Config {
 	std::string format;
 	bool legacy = false;
 	int segDurInMs = 2000;
+	bool passthru = false;
 };
