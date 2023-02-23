@@ -8,7 +8,7 @@
 const char *g_appName = "subtitle-live-ingester";
 
 std::unique_ptr<Pipelines::Pipeline> buildPipeline(Config&);
-static Pipelines::Pipeline *g_Pipeline = nullptr;
+extern std::shared_ptr<Pipelines::Pipeline> g_Pipeline;
 
 namespace {
 Config parseCommandLine(int argc, char const* argv[]) {
@@ -17,9 +17,10 @@ Config parseCommandLine(int argc, char const* argv[]) {
 
 	CmdLineOptions opt;
 	opt.add("o", "output", &cfg.output, "Output filename. The parent directory must exist.");
-	//opt.add("s", "segment-duration-in-ms", &cfg.segDurInMs, "Segment duration in milliseconds");
+	opt.add("d", "segment-duration-in-ms", &cfg.segDurInMs, "Segment duration in milliseconds");
 	opt.add("f", "subtitle-format", &cfg.format, "Output subtitle format: \"ttml\", \"webvtt\", or \"both\"");
 	opt.addFlag("l", "legacy", &cfg.legacy, "Activate TTML legacy layout (for compatibility tests).");
+	opt.addFlag("p", "passthru", &cfg.passthru, "Input is ready to package (encoded and segmented).");
 	opt.addFlag("h", "help", &cfg.help, "Print usage and exit.");
 
 	auto urls = opt.parse(argc, argv);
@@ -64,12 +65,11 @@ void safeMain(int argc, const char* argv[]) {
 	if(cfg.help)
 		return;
 
-	auto pipeline = buildPipeline(cfg);
-	g_Pipeline = pipeline.get();
+	g_Pipeline = buildPipeline(cfg);
 
 	{
 		Tools::Profiler profilerProcessing(format("%s - processing time", g_appName));
-		pipeline->start();
-		pipeline->waitForEndOfStream();
+		g_Pipeline->start();
+		g_Pipeline->waitForEndOfStream();
 	}
 }

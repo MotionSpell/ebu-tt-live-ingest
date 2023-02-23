@@ -154,33 +154,35 @@ std::unique_ptr<Pipeline> buildPipeline(Config &cfg) {
 	cfg.sockInCfg.isMulticast = false;
 	source = pipeline->add("SocketInput", &cfg.sockInCfg);
 
-	// extract text and add realtime timestamp
-	TtmlDecoderConfig ttmlDecCfg;
-	auto ttmlDec = pipeline->add("TTMLDecoder", &ttmlDecCfg);
-	pipeline->connect(source, ttmlDec);
-	source = ttmlDec;
+	if (!cfg.passthru) {
+		// extract text and add realtime timestamp
+		TtmlDecoderConfig ttmlDecCfg;
+		auto ttmlDec = pipeline->add("TTMLDecoder", &ttmlDecCfg);
+		pipeline->connect(source, ttmlDec);
+		source = ttmlDec;
 
-	// segment and serialize
-	SubtitleEncoderConfig subEncCfg;
-	subEncCfg.maxDelayBeforeEmptyInMs = subEncCfg.splitDurationInMs = cfg.segDurInMs;
-	subEncCfg.forceTtmlLegacy = cfg.legacy;
-	//Romain: subEncCfg.lang = ???;
-	subEncCfg.forceEmptyPage = true;
-	if (cfg.format == "ttml") {
-		subEncCfg.timingPolicy = SubtitleEncoderConfig::AbsoluteUTC;
-	} else {
-		assert(cfg.format == "webvtt");
-		subEncCfg.isWebVTT = true;
-		subEncCfg.timingPolicy = SubtitleEncoderConfig::RelativeToMedia;
+		// segment and serialize
+		SubtitleEncoderConfig subEncCfg;
+		subEncCfg.maxDelayBeforeEmptyInMs = subEncCfg.splitDurationInMs = cfg.segDurInMs;
+		subEncCfg.forceTtmlLegacy = cfg.legacy;
+		//Romain: subEncCfg.lang = ???;
+		subEncCfg.forceEmptyPage = true;
+		if (cfg.format == "ttml") {
+			subEncCfg.timingPolicy = SubtitleEncoderConfig::AbsoluteUTC;
+		} else {
+			assert(cfg.format == "webvtt");
+			subEncCfg.isWebVTT = true;
+			subEncCfg.timingPolicy = SubtitleEncoderConfig::RelativeToMedia;
+		}
+		subEncCfg.utcStartTime = &utcStartTime;
+		auto subEnc = pipeline->add("SubtitleEncoder", &subEncCfg);
+		pipeline->connect(source, subEnc);
+		source = subEnc;
+
+		// heartbeat to flush output subtitles even when there is no input
+		auto heartbeater = pipeline->addModule<HeartBeat>();
+		pipeline->connect(heartbeater, subEnc, true);
 	}
-	subEncCfg.utcStartTime = &utcStartTime;
-	auto subEnc = pipeline->add("SubtitleEncoder", &subEncCfg);
-	pipeline->connect(source, subEnc);
-	source = subEnc;
-
-	// heartbeat to flush output subtitles even when there is no input
-	auto heartbeater = pipeline->addModule<HeartBeat>();
-	pipeline->connect(heartbeater, subEnc, true);
 
 	// push to the ever-growing file
 	auto sink = pipeline->addModule<EverGrowingPlaylistSink>(cfg.output, cfg.segDurInMs);
