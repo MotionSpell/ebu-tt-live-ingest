@@ -53,7 +53,9 @@ Config parseCommandLine(int argc, char const* argv[]) {
 	    "\tinput                 =\"" << urls[0] << "\"\n"
 	    "\toutput                =" << cfg.output << "\n"
 	    "\tsegment-duration-in-ms=" << cfg.segDurInMs << "\n"
-	    "\tsubtitle format       =" << cfg.format << "\n";
+	    "\tsubtitle format       =" << cfg.format << "\n"
+	    "\tlegacy                =" << cfg.legacy << "\n"
+	    "\tpassthru              =" << cfg.passthru << "\n";
 
 	return cfg;
 }
