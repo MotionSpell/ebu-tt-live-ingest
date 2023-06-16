@@ -177,7 +177,8 @@ wss.on('connection', function (webSocket) {
             session = null
             log("info", `ready to accept new client connections.`);
         });
-        session = new WebSocketPipe(webSocket, target, verbose=false);
+        verbose = process.env.SUBSTANCE_WS_LOG_VERBOSE && (process.env.SUBSTANCE_WS_LOG_VERBOSE != "0")  && (process.env.SUBSTANCE_WS_LOG_VERBOSE != "false");
+        session = new WebSocketPipe(webSocket, target, verbose=verbose);
         session.init();
         log("info", `new websocket session initialized`);
     } else {
