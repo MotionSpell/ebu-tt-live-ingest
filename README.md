@@ -3,6 +3,7 @@ This is a replacement to the EBU/BBC Live Interoperability Toolkit.
 The current repository contains two tools:
 - ```ws2tcp```: a minimalist WebSocket to TCP bridge. Written with node.js.
 - ```subtitle-live-ingester```: a C++ application that ingest EBU-TT-Live (WDR flavour) and outputs data for the Live Subtitle Inserter.
+- ```newfor2tcp```: a C++ newfor server mockup.
 
 A sample EBU-TT-Live in available in the ```sample/``` folder.
 

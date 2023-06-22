@@ -4,16 +4,13 @@
 #include <string>
 #include <stdexcept>
 
-using namespace std;
-
 struct NewForServerMockup {
     NewForServerMockup() {
         read = fread(buf, 1, sizeof(buf), stdin);
         if (read < 1)
-            throw runtime_error("TCP data too small");
+            throw std::runtime_error("TCP data empty");
         if (read == sizeof(buf))
-            throw runtime_error("buffer may be too small");
-
+            throw std::runtime_error(std::string("buffer may be too small, received " + std::to_string(read) + " bytes").c_str());
     }
 
     void processRequest() {
@@ -21,10 +18,10 @@ struct NewForServerMockup {
             case 0x0E:
                 fprintf(stderr, "page init\n");
                 if (nextByte() != 0x15)
-                    throw runtime_error("misformed page init");
+                    throw std::runtime_error("misformed page init");
                 i += processPageInit();
                 break;
-            case 0x8F:
+            case 0x0F:
                 fprintf(stderr, "subtitle data\n");
                 i += processSubtitleData();
                 break;
@@ -60,16 +57,17 @@ private:
 
     uint8_t nextByte() {
         if (i + 1 < read)
-            throw runtime_error("can parse next byte");
+            throw std::runtime_error("can parse next byte");
 
         ++i;
         return buf[i];
     };
 
     int processPageInit() {
-        nextByte(); //hh
-        nextByte(); //tt
-        nextByte(); //uu
+        fprintf(stderr, "parsed %u", nextByte()); //hh
+        fprintf(stderr, " %u", nextByte()); //tt
+        fprintf(stderr, " %u", nextByte()); //uu
+        fprintf(stderr, "\n");
         sendLine("%d", ACK);
         return 0;
     }
